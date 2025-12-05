@@ -6,9 +6,10 @@ This project implements a modular banking system refactored into **8 granular mi
 
 ## 🏗️ Architecture Overview
 
-The system is divided into two logical modules:
+The system is organized into two main modules:
 
-### Module M1: Core Accounts (SOA)
+### 📂 Module M1: Core Accounts (SOA)
+**Location:** `./M1-CoreAccounts/`
 **Role:** The "Source of Truth". Handles atomic account management, ledger consistency, and user identity.
 **Communication:** Synchronous REST APIs.
 **Database:** PostgreSQL (Shared Schema).
@@ -20,14 +21,15 @@ The system is divided into two logical modules:
 | **Business Function Service** | `8083` | **Read-Only Aggregator**. Optimized for queries like `getBalance`, `getTransactionHistory`. |
 | **Business Transaction Service** | `8084` | **Write Operations**. Handles complex transactional logic like `transfer` and `deposit`. |
 
-### Module M2: Payments (EDA)
+### 📂 Module M2: Payments (EDA)
+**Location:** `./M2-Payments/`
 **Role:** High-volume, asynchronous payment processing pipeline.
 **Communication:** Asynchronous Kafka Events.
-**Database:** Cassandra (Transaction History), Redis (Caching - Optional).
+**Database:** PostgreSQL (Payments Table).
 
 | Microservice | Port | Function |
 | :--- | :--- | :--- |
-| **Payment Gateway** | `8085` | **Ingestion Point**. Validates requests and publishes initial events to Kafka. |
+| **Payment Gateway** | `8085` | **Ingestion Point**. Validates requests, publishes events, and provides status feedback. |
 | **Fraud Service** | `8086` | **Risk Engine**. Consumes events, applies fraud rules, and approves/rejects payments. |
 | **Clearing Service** | `8087` | **Settlement Orchestrator**. Consumes cleared payments and calls M1 to update balances. |
 | **Notification Service** | `8088` | **Alert System**. Consumes final status events and notifies users (simulated). |
@@ -60,6 +62,7 @@ The system is divided into two logical modules:
         *   *Result:* M1 updates PostgreSQL balances atomically.
     5.  **Notification**: `Clearing Service` publishes to **Kafka Topic:** `notification_service`.
     6.  **Alert**: `Notification Service` logs the success message.
+    7.  **Feedback**: CLI polls `Payment Gateway` (`GET /api/payments/{id}/status`) to confirm success.
 
 ### 3. Partner Deposit (Operations Clerk)
 *   **Flow**: Hybrid (REST -> Kafka -> REST)
@@ -78,9 +81,9 @@ The system is divided into two logical modules:
 
 | Role | Username | Password | User ID | Permissions |
 | :--- | :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `admin123` | `1` | Create accounts. |
-| **Customer** | `alice` | `alice123` | `2` | Transfer money. |
-| **Customer** | `bob` | `bob123` | `3` | Receive money. |
+| **Admin** | `admin` | `admin123` | `1` | Create accounts, Lock funds. |
+| **Customer** | `alice` | `alice123` | `2` | Transfer money, View balance. |
+| **Customer** | `bob` | `bob123` | `3` | Receive money, View balance. |
 | **Clerk** | `clerk` | `clerk123` | `4` | Deposit funds. |
 
 ---
@@ -88,23 +91,29 @@ The system is divided into two logical modules:
 ## 🛠️ Setup & Running
 
 ### 1. Start Infrastructure
+Run the following command in the root directory:
 ```powershell
 docker-compose up -d
 ```
-*Starts PostgreSQL, Cassandra, Zookeeper, and Kafka.*
+*Starts PostgreSQL, Zookeeper, and Kafka.*
 
 ### 2. Run Microservices
-Open **8 separate terminals** and run `mvn spring-boot:run` in each directory:
-1.  `auth-service`
-2.  `technical-service`
-3.  `business-function-service`
-4.  `business-transaction-service`
-5.  `payment-gateway`
-6.  `fraud-service`
-7.  `clearing-service`
-8.  `notification-service`
+You need to open **8 separate terminals**. Navigate to the respective folder and run the service.
+
+**M1: Core Accounts**
+1.  `cd M1-CoreAccounts/auth-service` -> `mvn spring-boot:run`
+2.  `cd M1-CoreAccounts/technical-service` -> `mvn spring-boot:run`
+3.  `cd M1-CoreAccounts/business-function-service` -> `mvn spring-boot:run`
+4.  `cd M1-CoreAccounts/business-transaction-service` -> `mvn spring-boot:run`
+
+**M2: Payments**
+5.  `cd M2-Payments/payment-gateway` -> `mvn spring-boot:run`
+6.  `cd M2-Payments/fraud-service` -> `mvn spring-boot:run`
+7.  `cd M2-Payments/clearing-service` -> `mvn spring-boot:run`
+8.  `cd M2-Payments/notification-service` -> `mvn spring-boot:run`
 
 ### 3. Run CLI
+In a new terminal (root directory):
 ```powershell
 ./banking_cli.ps1
 ```

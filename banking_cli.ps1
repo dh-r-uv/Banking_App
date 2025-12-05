@@ -22,6 +22,7 @@ function Show-Menu {
         Write-Host "1. Create Account"
         Write-Host "2. View All Accounts"
         Write-Host "3. Lock Account Funds"
+        Write-Host "4. Unlock Account Funds"
     }
     Write-Host "Q. Quit"
 }
@@ -136,6 +137,14 @@ while ($true) {
                     $amt = Read-Host "Amount to Lock"
                     $body = @{amount = $amt } | ConvertTo-Json
                     $res = Invoke-RestMethod -Uri "$TECHNICAL_SERVICE_URL/$accNum/lock" -Method Post -ContentType "application/json" -Headers @{"X-User-Id" = $user.id } -Body $body
+                    Write-Host $res -ForegroundColor Green
+                }
+                elseif ($choice -eq "4") {
+                    # Unlock Funds
+                    $accNum = Read-Host "Account Number"
+                    $amt = Read-Host "Amount to Unlock"
+                    $body = @{amount = $amt } | ConvertTo-Json
+                    $res = Invoke-RestMethod -Uri "$TECHNICAL_SERVICE_URL/$accNum/unlock" -Method Post -ContentType "application/json" -Headers @{"X-User-Id" = $user.id } -Body $body
                     Write-Host $res -ForegroundColor Green
                 }
             }
