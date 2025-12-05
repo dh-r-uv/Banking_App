@@ -1,4 +1,0 @@
-com\example\paymentgateway\service\PaymentProducer.class
-com\example\paymentgateway\controller\PaymentController.class
-com\example\paymentgateway\model\PaymentEvent.class
-com\example\paymentgateway\PaymentGatewayApplication.class

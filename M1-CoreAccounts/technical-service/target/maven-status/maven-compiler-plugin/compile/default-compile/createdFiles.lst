@@ -1,6 +1,0 @@
-com\example\technicalservice\repository\AccountRepository.class
-com\example\technicalservice\service\TechnicalFunctionService.class
-com\example\technicalservice\TechnicalApplication.class
-com\example\technicalservice\model\Account$AccountStatus.class
-com\example\technicalservice\model\Account.class
-com\example\technicalservice\controller\TechnicalController.class
