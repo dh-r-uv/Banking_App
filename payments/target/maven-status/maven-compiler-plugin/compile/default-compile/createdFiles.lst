@@ -1,0 +1,10 @@
+com\example\payments\service\ClearingService.class
+com\example\payments\service\FraudService.class
+com\example\payments\model\PaymentEntity.class
+com\example\payments\controller\PaymentController.class
+com\example\payments\config\KafkaConfig.class
+com\example\payments\PaymentsApplication.class
+com\example\payments\repository\PaymentRepository.class
+com\example\payments\service\NotificationService.class
+com\example\payments\model\PaymentEvent.class
+com\example\payments\service\PaymentProducer.class

@@ -1,0 +1,7 @@
+com\example\authservice\AuthApplication.class
+com\example\authservice\service\AuthService.class
+com\example\authservice\model\User.class
+com\example\authservice\controller\AuthController.class
+com\example\authservice\config\DataInitializer.class
+com\example\authservice\repository\UserRepository.class
+com\example\authservice\model\User$Role.class

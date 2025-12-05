@@ -1,0 +1,6 @@
+com\example\fraudservice\repository\PaymentRepository.class
+com\example\fraudservice\model\PaymentEntity.class
+com\example\fraudservice\service\FraudService.class
+com\example\fraudservice\service\PaymentProducer.class
+com\example\fraudservice\model\PaymentEvent.class
+com\example\fraudservice\FraudApplication.class
