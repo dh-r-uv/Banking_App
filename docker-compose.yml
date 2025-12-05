@@ -34,25 +34,5 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  cassandra:
-    image: cassandra:4.1
-    ports:
-      - "9042:9042"
-    environment:
-      - CASSANDRA_DC=datacenter1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-    volumes:
-      - cassandra_data:/var/lib/cassandra
-
-  cassandra-init:
-    image: cassandra:4.1
-    depends_on:
-      - cassandra
-    volumes:
-      - ./init.cql:/init.cql
-    command: >
-      bash -c "echo 'Waiting for Cassandra to start...' && sleep 30 && cqlsh cassandra -f /init.cql && echo 'Cassandra initialized'"
-
 volumes:
   postgres_data:
-  cassandra_data:

@@ -1,22 +1,22 @@
 package com.example.fraudservice.model;
 
-import org.springframework.data.cassandra.core.mapping.Column;
-import org.springframework.data.cassandra.core.mapping.PrimaryKey;
-import org.springframework.data.cassandra.core.mapping.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Table("payments")
+@Entity
+@Table(name = "payments")
 @Data
 public class PaymentEntity {
-    @PrimaryKey("transaction_id")
+    @Id
+    @Column(name = "transaction_id")
     private String transactionId;
 
-    @Column("source_account")
+    @Column(name = "source_account")
     private String sourceAccount;
 
-    @Column("target_account")
+    @Column(name = "target_account")
     private String targetAccount;
 
     private BigDecimal amount;
@@ -24,6 +24,6 @@ public class PaymentEntity {
     private LocalDateTime timestamp;
     private String type;
 
-    @Column("user_id")
+    @Column(name = "user_id")
     private Long userId;
 }
