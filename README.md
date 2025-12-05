@@ -1,6 +1,6 @@
 # Core Banking System (Microservices)
 
-This project implements a modular banking system refactored into **8 granular microservices**, demonstrating a hybrid architecture that combines **Service-Oriented Architecture (SOA)** for core banking and **Event-Driven Architecture (EDA)** for payments.
+This project implements a modular banking system refactored into **8 granular microservices**, demonstrating a hybrid architecture that combines **Microservices Architecture (SOA)** for core banking and lending and **Event-Driven Architecture (EDA)** for payments.
 
 ---
 
@@ -21,18 +21,16 @@ The system is organized into two main modules:
 | **Business Function Service** | `8083` | **Read-Only Aggregator**. Optimized for queries like `getBalance`, `getTransactionHistory`. |
 | **Business Transaction Service** | `8084` | **Write Operations**. Handles complex transactional logic like `transfer` and `deposit`. |
 
-### 📂 Module M2: Payments (EDA)
-**Location:** `./M2-Payments/`
-**Role:** High-volume, asynchronous payment processing pipeline.
-**Communication:** Asynchronous Kafka Events.
-**Database:** PostgreSQL (Payments Table).
+### 📂 Module M4: Lending & Credit (Microservices)
+**Location:** `./M4-Lending/`
+**Role:** Manages the entire loan lifecycle from application to repayment.
+**Communication:** Synchronous REST (Internal & External).
+**Database:** PostgreSQL (Loan & Repayment Tables).
 
 | Microservice | Port | Function |
 | :--- | :--- | :--- |
-| **Payment Gateway** | `8085` | **Ingestion Point**. Validates requests, publishes events, and provides status feedback. |
-| **Fraud Service** | `8086` | **Risk Engine**. Consumes events, applies fraud rules, and approves/rejects payments. |
-| **Clearing Service** | `8087` | **Settlement Orchestrator**. Consumes cleared payments and calls M1 to update balances. |
-| **Notification Service** | `8088` | **Alert System**. Consumes final status events and notifies users (simulated). |
+| **Credit Engine** | `8089` | **Technical Function**. Calculates credit scores (DTI rules) and validates collateral. |
+| **Loan Servicing** | `8090` | **Business Process**. Orchestrates origination, disbursement, repayment, and reporting. |
 
 ---
 
@@ -50,45 +48,34 @@ The system is organized into two main modules:
 *   **Steps**:
     1.  **Initiation**: Customer calls `Payment Gateway` (`POST /api/payments`).
     2.  **Event 1**: Gateway publishes `PaymentEvent` to **Kafka Topic:** `transaction_processing`.
-        *   *Status:* `INITIATED`
     3.  **Fraud Check**: `Fraud Service` consumes the event.
-        *   *Logic:* Checks if amount > Limit.
-        *   *Outcome:* Publishes to **Kafka Topic:** `payment_clearing`.
-        *   *Status:* `CLEARED` (or `FAILED`).
-    4.  **Settlement (Cross-Module Communication)**: `Clearing Service` consumes the cleared event.
-        *   **Action**: It makes a **Synchronous REST Call** to `Business Transaction Service` (M1).
-        *   *Endpoint:* `POST http://localhost:8084/api/business/transactions/transfer`
-        *   *Payload:* `{ fromAccount, toAccount, amount }`
-        *   *Result:* M1 updates PostgreSQL balances atomically.
-    5.  **Notification**: `Clearing Service` publishes to **Kafka Topic:** `notification_service`.
-    6.  **Alert**: `Notification Service` logs the success message.
-    7.  **Feedback**: CLI polls `Payment Gateway` (`GET /api/payments/{id}/status`) to confirm success.
+    4.  **Settlement**: `Clearing Service` calls M1 `Business Transaction Service` to update balances atomically.
+    5.  **Completion**: `Notification Service` alerts the user.
 
 ### 3. Partner Deposit (Operations Clerk)
 *   **Flow**: Hybrid (REST -> Kafka -> REST)
 *   **Steps**:
-    1.  **Initiation**: Clerk calls `Payment Gateway`.
-        *   **Endpoint**: `POST /api/payments/deposit`
-        *   **Payload**:
-            ```json
-            {
-              "targetAccount": "1234567890",
-              "amount": 1000.00
-            }
-            ```
-    2.  **Event 1**: Gateway publishes `PaymentEvent` to **Kafka Topic:** `transaction_processing`.
-        *   *Type:* `DEPOSIT`
-        *   *Source:* `PARTNER_DEPOSIT`
-    3.  **Fraud Check**: `Fraud Service` consumes the event.
-        *   *Logic:* Checks if amount > Limit.
-        *   *Outcome:* Publishes to **Kafka Topic:** `payment_clearing`.
-    4.  **Settlement (Cross-Module Communication)**: `Clearing Service` consumes the cleared event.
-        *   **Action**: Calls `Business Transaction Service` (M1).
-        *   *Endpoint:* `POST http://localhost:8084/api/business/transactions/deposit`
-        *   *Payload:* `{ accountNumber, amount }`
-        *   *Result:* M1 credits the account in PostgreSQL.
-    5.  **Completion**: `Clearing Service` publishes to **Kafka Topic:** `notification_service`.
-    6.  **Alert**: `Notification Service` logs the success message.
+    1.  **Initiation**: Clerk calls `Payment Gateway` (`POST /api/payments/deposit`).
+    2.  **Event**: Gateway publishes `PaymentEvent` (Type: `DEPOSIT`).
+    3.  **Settlement**: `Clearing Service` calls M1 to credit the account.
+
+### 4. Loan Application & Disbursement (Customer)
+*   **Flow**: Synchronous REST -> Hybrid Payment
+*   **Steps**:
+    1.  **Application**: Customer calls `Loan Servicing` (`POST /api/loan/apply`).
+    2.  **Credit Check**: `Loan Servicing` calls `Credit Engine` (`GET /score`).
+        *   *Logic*: Checks Income, DTI (Debt-to-Income), and Collateral.
+        *   *Outcome*: Score > 700 = **APPROVED**.
+    3.  **Validation**: `Loan Servicing` validates the Target Account with M1 `Business Function Service`.
+    4.  **Disbursement**: If Approved & Valid, `Loan Servicing` calls `Payment Gateway` (`POST /deposit`) to fund the account.
+    5.  **Repayment Scheduling**: Amortization schedule is generated automatically.
+
+### 5. Loan Repayment
+*   **Flow**: Synchronous REST
+*   **Steps**:
+    1.  Customer calls `Loan Servicing` (`POST /api/loan/repay`).
+    2.  System applies payment to the oldest unpaid installment.
+    3.  **Partial Payment Logic**: Excess amount reduces the *next* installment's balance.
 
 ---
 
@@ -96,9 +83,9 @@ The system is organized into two main modules:
 
 | Role | Username | Password | User ID | Permissions |
 | :--- | :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `admin123` | `1` | Create accounts, Lock funds. |
-| **Customer** | `alice` | `alice123` | `2` | Transfer money, View balance. |
-| **Customer** | `bob` | `bob123` | `3` | Receive money, View balance. |
+| **Admin** | `admin` | `admin123` | `1` | Create accounts, View All Loans. |
+| **Customer** | `alice` | `alice123` | `2` | Transfer, Apply for Loan, Repay. |
+| **Customer** | `bob` | `bob123` | `3` | Receive money. |
 | **Clerk** | `clerk` | `clerk123` | `4` | Deposit funds. |
 
 ---
@@ -112,22 +99,23 @@ docker-compose up -d
 ```
 *Starts PostgreSQL, Zookeeper, and Kafka.*
 
-### 2. Run Microservices
-You need to open **8 separate terminals**. Navigate to the respective folder and run the service.
-
-**M1: Core Accounts**
+### 2. Run M1: Core Accounts (Terminals 1-4)
 1.  `cd M1-CoreAccounts/auth-service` -> `mvn spring-boot:run`
 2.  `cd M1-CoreAccounts/technical-service` -> `mvn spring-boot:run`
 3.  `cd M1-CoreAccounts/business-function-service` -> `mvn spring-boot:run`
 4.  `cd M1-CoreAccounts/business-transaction-service` -> `mvn spring-boot:run`
 
-**M2: Payments**
+### 3. Run M2: Payments (Terminals 5-8)
 5.  `cd M2-Payments/payment-gateway` -> `mvn spring-boot:run`
 6.  `cd M2-Payments/fraud-service` -> `mvn spring-boot:run`
 7.  `cd M2-Payments/clearing-service` -> `mvn spring-boot:run`
 8.  `cd M2-Payments/notification-service` -> `mvn spring-boot:run`
 
-### 3. Run CLI
+### 4. Run M4: Lending (Terminals 9-10)
+9.  `cd M4-Lending/credit-engine` -> `mvn spring-boot:run`
+10. `cd M4-Lending/loan-servicing` -> `mvn spring-boot:run`
+
+### 5. Run CLI
 In a new terminal (root directory):
 ```powershell
 ./banking_cli.ps1
