@@ -1,4 +1,5 @@
-# Maven
+# Maven (Recursive)
+**/target/
 target/
 pom.xml.tag
 pom.xml.releaseBackup
@@ -12,8 +13,10 @@ buildNumber
 
 # IDEs
 .idea/
+**/.idea/
 *.iml
 .vscode/
+**/.vscode/
 *.classpath
 *.project
 *.settings/
@@ -21,6 +24,7 @@ bin/
 
 # Logs
 *.log
+**/*.log
 logs/
 
 # OS
