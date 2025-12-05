@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.example</groupId>
+	<artifactId>banking-root</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>banking-root</name>
+	<description>Root project for Core Banking Microservices</description>
+	
+	<modules>
+		<module>M1-CoreAccounts/auth-service</module>
+		<module>M1-CoreAccounts/business-function-service</module>
+		<module>M1-CoreAccounts/business-transaction-service</module>
+		<module>M1-CoreAccounts/technical-service</module>
+		<module>M2-Payments/clearing-service</module>
+		<module>M2-Payments/fraud-service</module>
+		<module>M2-Payments/notification-service</module>
+		<module>M2-Payments/payment-gateway</module>
+	</modules>
+</project>

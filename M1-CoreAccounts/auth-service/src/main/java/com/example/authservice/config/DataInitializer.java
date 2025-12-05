@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@lombok.extern.slf4j.Slf4j
 public class DataInitializer {
 
     @Bean
@@ -17,7 +18,8 @@ public class DataInitializer {
                 userRepository.save(new User(null, "alice", "alice123", User.Role.CUSTOMER));
                 userRepository.save(new User(null, "bob", "bob123", User.Role.CUSTOMER));
                 userRepository.save(new User(null, "clerk", "clerk123", User.Role.OPERATIONS_CLERK));
-                System.out.println("Default users created: admin, alice, bob, clerk");
+                // System.out.println("Default users created: admin, alice, bob, clerk");
+                log.info("[BANKING-CORE] Action Triggered: Default users created: admin, alice, bob, clerk");
             }
         };
     }

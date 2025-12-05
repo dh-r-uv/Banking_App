@@ -67,13 +67,28 @@ The system is organized into two main modules:
 ### 3. Partner Deposit (Operations Clerk)
 *   **Flow**: Hybrid (REST -> Kafka -> REST)
 *   **Steps**:
-    1.  **Initiation**: Clerk calls `Payment Gateway` (`POST /api/payments/deposit`).
+    1.  **Initiation**: Clerk calls `Payment Gateway`.
+        *   **Endpoint**: `POST /api/payments/deposit`
+        *   **Payload**:
+            ```json
+            {
+              "targetAccount": "1234567890",
+              "amount": 1000.00
+            }
+            ```
     2.  **Event 1**: Gateway publishes `PaymentEvent` to **Kafka Topic:** `transaction_processing`.
         *   *Type:* `DEPOSIT`
-    3.  **Fraud Check**: `Fraud Service` validates and publishes to `payment_clearing`.
-    4.  **Settlement**: `Clearing Service` calls M1 `Business Transaction Service`.
+        *   *Source:* `PARTNER_DEPOSIT`
+    3.  **Fraud Check**: `Fraud Service` consumes the event.
+        *   *Logic:* Checks if amount > Limit.
+        *   *Outcome:* Publishes to **Kafka Topic:** `payment_clearing`.
+    4.  **Settlement (Cross-Module Communication)**: `Clearing Service` consumes the cleared event.
+        *   **Action**: Calls `Business Transaction Service` (M1).
         *   *Endpoint:* `POST http://localhost:8084/api/business/transactions/deposit`
-    5.  **Completion**: Notification sent via Kafka.
+        *   *Payload:* `{ accountNumber, amount }`
+        *   *Result:* M1 credits the account in PostgreSQL.
+    5.  **Completion**: `Clearing Service` publishes to **Kafka Topic:** `notification_service`.
+    6.  **Alert**: `Notification Service` logs the success message.
 
 ---
 

@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@lombok.extern.slf4j.Slf4j
 public class ClearingService {
 
     private final PaymentProducer paymentProducer;
@@ -29,7 +30,8 @@ public class ClearingService {
 
     @KafkaListener(topics = "payment_clearing", groupId = "clearing-group")
     public void settlePayment(PaymentEvent event) {
-        System.out.println("Clearing Service: Settling " + event.getTransactionId());
+        // System.out.println("Clearing Service: Settling " + event.getTransactionId());
+        log.info("[BANKING-CORE] Event Received: Payment Clearing for transactionId={}", event.getTransactionId());
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -50,14 +52,18 @@ public class ClearingService {
             }
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+            log.info("[BANKING-CORE] Action Triggered: Initiating Settlement for transactionId={}",
+                    event.getTransactionId());
             restTemplate.postForEntity(url, entity, String.class);
 
             event.setStatus("SUCCESS");
             updatePaymentStatus(event.getTransactionId(), "SUCCESS");
+            log.info("[BANKING-CORE] Processed: Settlement Successful for transactionId={}", event.getTransactionId());
             paymentProducer.sendNotification(event);
 
         } catch (Exception e) {
             System.err.println("Settlement Failed: " + e.getMessage());
+            log.error("[BANKING-CORE] Processed: Settlement Failed for transactionId={}", event.getTransactionId(), e);
             event.setStatus("FAILED");
             updatePaymentStatus(event.getTransactionId(), "FAILED");
             // Optionally send notification about failure
