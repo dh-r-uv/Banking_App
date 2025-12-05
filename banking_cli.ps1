@@ -42,6 +42,33 @@ function Login {
     }
 }
 
+function Wait-ForPaymentStatus {
+    param ($TransactionId, $UserId)
+    Write-Host "Processing Payment..." -NoNewline
+    for ($i = 0; $i -lt 10; $i++) {
+        Start-Sleep -Seconds 2
+        try {
+            $statusRes = Invoke-RestMethod -Uri "$PAYMENT_GATEWAY_URL/$TransactionId/status" -Headers @{"X-User-Id" = $UserId }
+            $status = $statusRes.status
+            if ($status -eq "SUCCESS") {
+                Write-Host " Done!"
+                Write-Host "Transaction SUCCESS" -ForegroundColor Green
+                return
+            }
+            elseif ($status -eq "FAILED") {
+                Write-Host " Done!"
+                Write-Host "Transaction FAILED" -ForegroundColor Red
+                return
+            }
+            Write-Host "." -NoNewline
+        }
+        catch {
+            Write-Host "." -NoNewline
+        }
+    }
+    Write-Host "`nTimeout: Transaction status unknown (check later)" -ForegroundColor Yellow
+}
+
 # Main Loop
 while ($true) {
     $user = Login
@@ -75,7 +102,7 @@ while ($true) {
                     $amt = Read-Host "Amount"
                     $body = @{sourceAccount = $from; targetAccount = $to; amount = $amt } | ConvertTo-Json
                     $res = Invoke-RestMethod -Uri "$PAYMENT_GATEWAY_URL" -Method Post -ContentType "application/json" -Headers @{"X-User-Id" = $user.id } -Body $body
-                    Write-Host $res -ForegroundColor Green
+                    Wait-ForPaymentStatus -TransactionId $res -UserId $user.id
                 }
             }
             elseif ($user.role -eq "OPERATIONS_CLERK") {
@@ -85,7 +112,7 @@ while ($true) {
                     $amt = Read-Host "Amount"
                     $body = @{targetAccount = $to; amount = $amt } | ConvertTo-Json
                     $res = Invoke-RestMethod -Uri "$PAYMENT_GATEWAY_URL/deposit" -Method Post -ContentType "application/json" -Headers @{"X-User-Id" = $user.id } -Body $body
-                    Write-Host $res -ForegroundColor Green
+                    Wait-ForPaymentStatus -TransactionId $res -UserId $user.id
                 }
             }
             elseif ($user.role -eq "ADMIN") {

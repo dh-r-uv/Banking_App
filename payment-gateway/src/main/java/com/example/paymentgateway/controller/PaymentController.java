@@ -14,9 +14,12 @@ import java.util.UUID;
 public class PaymentController {
 
     private final PaymentProducer paymentProducer;
+    private final com.example.paymentgateway.repository.PaymentRepository paymentRepository;
 
-    public PaymentController(PaymentProducer paymentProducer) {
+    public PaymentController(PaymentProducer paymentProducer,
+            com.example.paymentgateway.repository.PaymentRepository paymentRepository) {
         this.paymentProducer = paymentProducer;
+        this.paymentRepository = paymentRepository;
     }
 
     @PostMapping
@@ -32,7 +35,7 @@ public class PaymentController {
         event.setUserId(userId);
 
         paymentProducer.sendPaymentInitiated(event);
-        return ResponseEntity.ok("Payment Initiated: " + event.getTransactionId());
+        return ResponseEntity.ok(event.getTransactionId());
     }
 
     @PostMapping("/deposit")
@@ -48,6 +51,13 @@ public class PaymentController {
         event.setUserId(userId);
 
         paymentProducer.sendPaymentInitiated(event);
-        return ResponseEntity.ok("Deposit Initiated: " + event.getTransactionId());
+        return ResponseEntity.ok(event.getTransactionId());
+    }
+
+    @GetMapping("/{transactionId}/status")
+    public ResponseEntity<Map<String, String>> getPaymentStatus(@PathVariable String transactionId) {
+        return paymentRepository.findById(transactionId)
+                .map(payment -> ResponseEntity.ok(Map.of("status", payment.getStatus())))
+                .orElse(ResponseEntity.notFound().build());
     }
 }
