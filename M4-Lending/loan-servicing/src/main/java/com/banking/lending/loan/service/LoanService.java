@@ -84,12 +84,17 @@ public class LoanService {
         }
         try {
             // Call Payment Gateway to deposit funds
-            java.util.Map<String, Object> request = new java.util.HashMap<>();
-            request.put("targetAccount", app.getTargetAccount());
-            request.put("amount", app.getAmount());
+            java.util.Map<String, Object> requestMap = new java.util.HashMap<>();
+            requestMap.put("targetAccount", app.getTargetAccount());
+            requestMap.put("amount", app.getAmount());
+
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("X-User-Id", String.valueOf(app.getUserId()));
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+
+            org.springframework.http.HttpEntity<java.util.Map<String, Object>> requestEntity = new org.springframework.http.HttpEntity<>(requestMap, headers);
             
-            restTemplate.postForEntity(paymentGatewayUrl + "/deposit", request, String.class, 
-                java.util.Collections.singletonMap("X-User-Id", app.getUserId()));
+            restTemplate.postForEntity(paymentGatewayUrl + "/deposit", requestEntity, String.class);
             
             System.out.println("Loan " + app.getId() + " disbursed to " + app.getTargetAccount());
         } catch (Exception e) {
